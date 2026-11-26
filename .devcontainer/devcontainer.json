@@ -1,0 +1,22 @@
+{
+  "name": "coding-skills",
+  "image": "debian:bookworm-slim",
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "upgradePackages": false
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteUser": "vscode",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y --no-install-recommends make && sudo rm -rf /var/lib/apt/lists/*",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "davidanson.vscode-markdownlint",
+        "timonwong.shellcheck"
+      ]
+    }
+  }
+}
