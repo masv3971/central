@@ -47,7 +47,7 @@ Use exactly this structure:
 What the PR does (2–3 sentences), which commits/files you reviewed, and your verdict: **Approve**, **Approve with nits**, **Request changes**, or **Needs discussion**.
 
 ### Blocking issues
-For each: `path:line`, the problem, why it matters (concrete failure scenario), and a suggested fix (short code snippet if helpful).
+For each: a clickable `[path:line](https://github.com/OWNER/REPO/blob/<headRefOid>/path#Lline)` link, the problem, why it matters (concrete failure scenario), and a suggested fix (short code snippet if helpful).
 
 ### Non-blocking suggestions
 Quality, tests, docs.
@@ -63,7 +63,7 @@ Anything you couldn't check (no local checkout, untested JS, external wallet/ser
 
 ### Draft review comments
 Ready-to-post comments in this form, one per finding:
-`path:line` — comment text (friendly, specific, actionable).
+`[path:line](https://github.com/OWNER/REPO/blob/<headRefOid>/path#Lline)` — comment text (friendly, specific, actionable).
 
 Then ask me whether to post them. Only if I say yes, post with `gh pr review PR --comment --body-file <file>` (or `--request-changes` / `--approve` if I say so), and for inline comments use `gh api` against the PR review comments endpoint.
 
