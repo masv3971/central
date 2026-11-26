@@ -77,7 +77,7 @@ PR title and link, head commit, and counts: open threads, body-only findings, co
 Grouped by severity (High → Medium → Low), one block per finding:
 
 **[#] Title** — source (Copilot / Code scanning / Sonar / @person) · severity · status (Valid / Already fixed / False positive / Needs discussion)
-- Where: clickable `[path:line](https://github.com/OWNER/REPO/blob/<headRefOid>/path#Lline)`, plus a link to the thread or alert
+- Where: clickable [path:line](https://github.com/OWNER/REPO/blob/<headRefOid>/path#Lline), plus a link to the thread or alert
 - Problem: one or two sentences in your own words
 - Verdict: why you classified it this way
 - Fix: concrete suggestion (short snippet if helpful), or the commit that already fixed it
