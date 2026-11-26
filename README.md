@@ -4,9 +4,12 @@ Central repository for SUNET agent skills. Skills live in [.github/skills](.gith
 
 ## Install into a repo
 
+The script is attached to every release, so fetch it once and run it:
+
 ```bash
-scripts/sync-skills.sh                                   # latest release, all skills
-scripts/sync-skills.sh -v v1.2.0 sunet-prreview          # pinned version, selected skills
+gh release download --repo masv3971/coding-skills --pattern sync-skills.sh && chmod +x sync-skills.sh
+./sync-skills.sh                                         # latest release, all skills
+./sync-skills.sh -v v1.2.0 sunet-prreview                # pinned version, selected skills
 ```
 
 Skills are copied to `.github/skills/` (override with `-d`). The installed version is recorded in `.github/skills/.skills-version`. Synced skills are overwritten on every run, so change them here, not in the consuming repo.
