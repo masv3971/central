@@ -19,7 +19,7 @@ shift $((OPTIND - 1))
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 
-if command -v gh >/dev/null; then
+if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
   tag_arg=()
   [ "$VERSION" = "latest" ] || tag_arg=("$VERSION")
   gh release download "${tag_arg[@]}" --repo "$SLUG" --dir "$tmp" --pattern 'coding-skills-*.tar.gz*'
