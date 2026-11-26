@@ -17,7 +17,7 @@ Get the current repo and default branch first: `gh repo view --json nameWithOwne
 Use `gh` in the terminal (if it isn't installed or authenticated, tell me to run `gh auth login` and stop). Replace ISSUE with the number, and OWNER/REPO with the current repo:
 
 - `gh issue view ISSUE --repo OWNER/REPO --json number,title,body,author,labels,assignees,milestone,state,url,comments`
-- Open PRs that reference the issue: `gh pr list --repo OWNER/REPO --state open --search "N" --json number,title,url,headRefName,body`
+- Open PRs that reference the issue: `gh pr list --repo OWNER/REPO --state open --limit 200 --json number,title,url,headRefName,body,closingIssuesReferences`. Keep PRs whose `closingIssuesReferences` contains the issue, or whose text mentions it.
 - Linked issues: follow "part of #N", "blocked by #N", "depends on #N" and task lists in the body and comments, and read those with `gh issue view N --repo OWNER/REPO`, using the repo from the reference when it is qualified (`OTHER/REPO#N`).
 - Existing branch naming: `git branch -a --list` and `gh pr list --repo OWNER/REPO --state all --limit 30 --json headRefName`, plus any convention in `CONTRIBUTING.md` or `AGENTS.md`.
 
@@ -64,7 +64,7 @@ Then ask me whether the plan is OK. Do nothing until I approve it.
 ## 4. Start the branch (only after I approve the plan)
 - Require a clean working tree (`git status --porcelain` is empty). If not, stop and tell me.
 - Run `git fetch origin <default-branch>`. If it fails, stop and show the error.
-- Run the `git switch -c` command from the report.
+- Run the `git switch -c` command from the report. If it fails, stop and show the error. Do not commit.
 - Make one empty initial commit with `git commit --allow-empty`. Show me the message first.
 - Message: Conventional Commits, imperative summary of at most 72 characters (for example `chore: start work on <short summary>`), blank line, body `Closes #N`. No `Co-Authored-By` trailer.
 - Never pass `--amend`, `--no-verify` or `--no-gpg-sign`. Never push.
