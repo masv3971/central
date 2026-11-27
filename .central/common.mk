@@ -1,8 +1,10 @@
 BUMP         ?= patch
 FORCE        ?=
 SKILLS_REPO  ?= masv3971/central
+# Extra image tag docker-release moves to the new build (empty to skip).
+DOCKER_EXTRA_TAG ?= dev
 
-.PHONY: release get_release-tag gh-install gh-auth central-sync-install
+.PHONY: release docker-release _release get_release-tag gh-install gh-auth central-sync-install
 
 # Downloads the latest central-sync.sh release asset to .central/central-sync.sh.
 central-sync-install:
@@ -41,6 +43,14 @@ get_release-tag: ## Show the latest vX.Y.Z tag
 
 # Tags the next vX.Y.Z and pushes it.
 release: ## Tag and push the next release (BUMP=major|minor|patch)
+	@$(MAKE) --no-print-directory _release
+
+# Same as release, plus Docker images. The project defines docker-build, docker-push
+# and docker-tag; each gets VERSION=<tag> (docker-tag also NEWTAG=) and _RELEASE_MODE=1.
+docker-release: ## Like release, and build and push Docker images (BUMP=major|minor|patch)
+	@$(MAKE) --no-print-directory _release RELEASE_DOCKER=1
+
+_release:
 	@set -e; \
 	echo "$(BUMP)" | grep -qE '^(major|minor|patch)$$' || \
 		{ echo "Error: BUMP must be major, minor, or patch (got: $(BUMP))"; exit 1; }; \
@@ -51,6 +61,12 @@ release: ## Tag and push the next release (BUMP=major|minor|patch)
 			{ echo "Error: working tree is dirty (use FORCE=true to override)"; exit 1; }; \
 		[ -z "$$(git ls-files --others --exclude-standard -- CHANGELOG.md)" ] || \
 			{ echo "Error: CHANGELOG.md is untracked (use FORCE=true to override)"; exit 1; }; \
+	fi; \
+	if [ -n "$(RELEASE_DOCKER)" ]; then \
+		for t in docker-build docker-push $(if $(DOCKER_EXTRA_TAG),docker-tag); do \
+			$(MAKE) --no-print-directory -n $$t VERSION=v0.0.0 NEWTAG=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1 >/dev/null 2>&1 || \
+				{ echo "Error: docker-release needs a $$t target in this Makefile"; exit 1; }; \
+		done; \
 	fi; \
 	LATEST=$$(git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1); \
 	LATEST=$${LATEST:-v0.0.0}; \
@@ -76,8 +92,23 @@ release: ## Tag and push the next release (BUMP=major|minor|patch)
 	bash .central/release-changelog.sh "$$NEW_TAG" "$$LATEST"; \
 	git add CHANGELOG.md; \
 	git diff --cached --quiet -- CHANGELOG.md || git commit -m "chore: changelog for $$NEW_TAG" -- CHANGELOG.md; \
+	if [ -n "$(RELEASE_DOCKER)" ]; then \
+		echo "Building Docker images for $$NEW_TAG before creating the git tag..."; \
+		$(MAKE) docker-build VERSION=$$NEW_TAG _RELEASE_MODE=1; \
+	fi; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
 	git push --atomic origin HEAD "$$NEW_TAG"; \
 	echo ""; \
 	echo "==> $$NEW_TAG pushed"; \
-	echo ""
+	echo ""; \
+	if [ -n "$(RELEASE_DOCKER)" ]; then \
+		echo "Pushing Docker images for $$NEW_TAG..."; \
+		{ $(MAKE) docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1 && \
+			{ [ -z "$(DOCKER_EXTRA_TAG)" ] || \
+				{ $(MAKE) docker-tag VERSION=$$NEW_TAG NEWTAG=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1 && \
+					$(MAKE) docker-push VERSION=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1; }; }; } || \
+			{ echo "Error: $$NEW_TAG is tagged and pushed but the image push failed; finish it with 'make docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1'"; exit 1; }; \
+		echo ""; \
+		echo "==> Docker images pushed for $$NEW_TAG$(if $(DOCKER_EXTRA_TAG), (:$(DOCKER_EXTRA_TAG)))"; \
+		echo ""; \
+	fi

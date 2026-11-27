@@ -32,4 +32,15 @@ make release BUMP=minor     # or major
 
 This tags the next version and pushes it (needs a clean tree on `main`; `FORCE=true` overrides). The pipeline builds `central-<version>.tar.gz` and its `.sha256` and publishes them as a GitHub release. Use semver; renaming or removing a skill is a major bump.
 
+Both release targets first prepend a section to `CHANGELOG.md` and commit it.
+
+### Projects that ship Docker images
+
+```bash
+make docker-release                  # release, plus build and push images
+make docker-release BUMP=minor DOCKER_EXTRA_TAG=   # no extra tag
+```
+
+`docker-release` does the same as `release`, and also calls the project's own `docker-build`, `docker-push` and `docker-tag` targets. Define them in the project's `Makefile`; each is called with `VERSION=<tag>` and `_RELEASE_MODE=1`, and `docker-tag` also gets `NEWTAG=`. Images are built before the git tag is created and pushed after it. The new tag is then also pushed as `:dev` (`DOCKER_EXTRA_TAG`, empty to skip). If the image push fails after the tag is out, the error names the command to finish it.
+
 Build locally with `scripts/build-bundle.sh <version>` (output in `dist/`).
