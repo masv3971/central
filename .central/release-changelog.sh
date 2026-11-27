@@ -132,10 +132,11 @@ awk -v tag="## $NEW_TAG" '
 ' "$FILE" >"$stripped"
 
 {
-	sed -n '1p' "$stripped"
+	# Keep the title and any intro above the first release heading.
+	awk '/^## / { exit } { print }' "$stripped" | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}'
 	echo
 	cat "$section"
-	sed '1,2d' "$stripped"
+	awk 'f { print; next } /^## / { f = 1; print }' "$stripped"
 } >"$out"
 cat "$out" >"$FILE"
 echo "==> $FILE updated for $NEW_TAG"
