@@ -57,8 +57,12 @@ if [ -d "$tmp/x/central" ]; then
   mkdir -p .central
   cp -r "$tmp/x/central/." .central/
   include_line='-include .central/common.mk'
-  if [ ! -f Makefile ] || ! grep -qxF "$include_line" Makefile; then
-    printf '\n%s\n' "$include_line" >> Makefile
+  mk=Makefile
+  for f in GNUmakefile makefile Makefile; do
+    [ -f "$f" ] && { mk=$f; break; }
+  done
+  if [ ! -f "$mk" ] || ! grep -qxF "$include_line" "$mk"; then
+    printf '\n%s\n' "$include_line" >> "$mk"
   fi
   echo "synced .central"
 fi
