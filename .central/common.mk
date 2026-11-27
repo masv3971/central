@@ -37,7 +37,7 @@ gh-auth: gh-install
 	fi
 
 get_release-tag: ## Show the latest vX.Y.Z tag
-	@git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1 || echo "v0.0.0"
+	@t=$$(git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1); echo "$${t:-v0.0.0}"
 
 # Tags the next vX.Y.Z and pushes it.
 release: ## Tag and push the next release (BUMP=major|minor|patch)
@@ -49,9 +49,14 @@ release: ## Tag and push the next release (BUMP=major|minor|patch)
 			{ echo "Error: not on main (use FORCE=true to override)"; exit 1; }; \
 		git diff --quiet HEAD || \
 			{ echo "Error: working tree is dirty (use FORCE=true to override)"; exit 1; }; \
+		[ -z "$$(git ls-files --others --exclude-standard -- CHANGELOG.md)" ] || \
+			{ echo "Error: CHANGELOG.md is untracked (use FORCE=true to override)"; exit 1; }; \
 	fi; \
 	LATEST=$$(git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1); \
 	LATEST=$${LATEST:-v0.0.0}; \
+	if [ "$$LATEST" != v0.0.0 ] && [ -z "$$(git ls-remote --tags origin "refs/tags/$$LATEST")" ]; then \
+		echo "Error: $$LATEST is not on origin, likely a failed release. Push it, or remove it with 'git tag -d $$LATEST' and undo its changelog commit."; exit 1; \
+	fi; \
 	CURRENT=$${LATEST#v}; \
 	MAJOR=$$(echo "$$CURRENT" | cut -d. -f1); \
 	MINOR=$$(echo "$$CURRENT" | cut -d. -f2); \
