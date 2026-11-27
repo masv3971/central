@@ -103,11 +103,15 @@ _release:
 	echo ""; \
 	if [ -n "$(RELEASE_DOCKER)" ]; then \
 		echo "Pushing Docker images for $$NEW_TAG..."; \
-		{ $(MAKE) docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1 && \
-			{ [ -z "$(DOCKER_EXTRA_TAG)" ] || \
-				{ $(MAKE) docker-tag VERSION=$$NEW_TAG NEWTAG=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1 && \
-					$(MAKE) docker-push VERSION=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1; }; }; } || \
-			{ echo "Error: $$NEW_TAG is tagged and pushed but the image push failed; finish it with 'make docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1'"; exit 1; }; \
+		P="make docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1"; \
+		T="make docker-tag VERSION=$$NEW_TAG NEWTAG=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1"; \
+		X="make docker-push VERSION=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1"; \
+		fail() { echo "Error: $$NEW_TAG is tagged and pushed, but $$1 failed. Run the rest by hand:"; shift; for c in "$$@"; do echo "  $$c"; done; exit 1; }; \
+		$(MAKE) docker-push VERSION=$$NEW_TAG _RELEASE_MODE=1 || fail "docker-push of $$NEW_TAG" "$$P" $(if $(DOCKER_EXTRA_TAG),"$$T" "$$X"); \
+		if [ -n "$(DOCKER_EXTRA_TAG)" ]; then \
+			$(MAKE) docker-tag VERSION=$$NEW_TAG NEWTAG=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1 || fail "docker-tag $(DOCKER_EXTRA_TAG)" "$$T" "$$X"; \
+			$(MAKE) docker-push VERSION=$(DOCKER_EXTRA_TAG) _RELEASE_MODE=1 || fail "docker-push of $(DOCKER_EXTRA_TAG)" "$$X"; \
+		fi; \
 		echo ""; \
 		echo "==> Docker images pushed for $$NEW_TAG$(if $(DOCKER_EXTRA_TAG), (:$(DOCKER_EXTRA_TAG)))"; \
 		echo ""; \
