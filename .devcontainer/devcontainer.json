@@ -1,5 +1,5 @@
 {
-  "name": "coding-skills",
+  "name": "central",
   "image": "debian:bookworm-slim",
   "features": {
     "ghcr.io/devcontainers/features/common-utils:2": {
