@@ -72,18 +72,27 @@ done < <(git log --no-merges "${DRAFT[@]}" --format='%H|%an|%ae' "$RANGE")
 # Not every merge keeps "(#N)" in the subject, so ask GitHub; fall back to commit SHAs.
 since=$(git log -1 --format=%cI "$PREV_TAG" 2>/dev/null || true)
 prs=
+declare -A pr_oid
 if [[ -n "$since" ]] && command -v gh >/dev/null 2>&1; then
 	candidates=$(gh pr list -R "$REPO" --state merged --search "merged:>$since" --limit 1000 --json number,title,mergedAt,mergeCommit --jq 'sort_by(.mergedAt) | reverse | .[] | select(.mergeCommit != null) | "\(.mergeCommit.oid)\t\(.number)\t\(.title)"' 2>/dev/null || true)
 	while IFS=$'\t' read -r oid number title; do
 		[[ -n "$oid" ]] || continue
 		in_range "$oid" || continue
+		pr_oid[$oid]=1
 		prs+="- #$number: $title"$'\n'
 	done <<<"$candidates"
 	prs=${prs%$'\n'}
 fi
 if [[ -n "$prs" ]]; then
-	change_list=$prs
 	pr_count=$(printf '%s\n' "$prs" | wc -l | tr -d ' ')
+	# Direct and squash commits on the first-parent line that no listed PR accounts for.
+	direct=
+	while read -r sha subject; do
+		[[ -n "${pr_oid[$sha]:-}" ]] && continue
+		direct+="- ${sha:0:7}: $subject"$'\n'
+	done < <(git log --first-parent --no-merges "${DRAFT[@]}" --format='%H %s' "$RANGE")
+	direct=${direct%$'\n'}
+	change_list=$prs${direct:+$'\n'$direct}
 else
 	change_list=$(git log --no-merges "${DRAFT[@]}" --format='- %h: %s' "$RANGE")
 	pr_count=$(git log --no-merges "${DRAFT[@]}" --format=%s "$RANGE" | { grep -oE '\(#[0-9]+\)$' || true; } | sort -u | wc -l | tr -d ' ')
