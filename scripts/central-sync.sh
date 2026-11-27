@@ -22,21 +22,28 @@ trap 'rm -rf "$tmp"' EXIT
 if command -v gh >/dev/null && gh auth status >/dev/null 2>&1; then
   tag_arg=()
   [ "$VERSION" = "latest" ] || tag_arg=("$VERSION")
-  gh release download "${tag_arg[@]}" --repo "$SLUG" --dir "$tmp" --pattern 'central-*.tar.gz*'
+  gh release download "${tag_arg[@]}" --repo "$SLUG" --dir "$tmp" --pattern 'central-*.tar.gz*' --pattern 'coding-skills-*.tar.gz*'
 else
   if [ "$VERSION" = "latest" ]; then
     VERSION="$(curl -fsSLI -o /dev/null -w '%{url_effective}' "https://github.com/$SLUG/releases/latest")"
     VERSION="${VERSION##*/}"
   fi
-  base="https://github.com/$SLUG/releases/download/$VERSION/central-$VERSION.tar.gz"
-  curl -fsSL -o "$tmp/central-$VERSION.tar.gz" "$base"
-  curl -fsSL -o "$tmp/central-$VERSION.tar.gz.sha256" "$base.sha256"
+  # Releases before the rename ship coding-skills-*, so fall back to that name.
+  for prefix in central coding-skills; do
+    base="https://github.com/$SLUG/releases/download/$VERSION/$prefix-$VERSION.tar.gz"
+    if curl -fsSL -o "$tmp/$prefix-$VERSION.tar.gz" "$base"; then
+      curl -fsSL -o "$tmp/$prefix-$VERSION.tar.gz.sha256" "$base.sha256"
+      break
+    fi
+    rm -f "$tmp/$prefix-$VERSION.tar.gz"
+  done
 fi
 
+compgen -G "$tmp/*.tar.gz" >/dev/null || { echo "no release bundle found for $VERSION in $SLUG" >&2; exit 1; }
 (cd "$tmp" && sha256sum --check --quiet ./*.sha256)
 
 mkdir -p "$tmp/x"
-tar -xzf "$tmp"/central-*.tar.gz -C "$tmp/x"
+tar -xzf "$tmp"/*.tar.gz -C "$tmp/x"
 src="$tmp/x/skills"
 
 if [ "$#" -gt 0 ]; then
