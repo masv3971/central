@@ -39,11 +39,13 @@ else
   done
 fi
 
-compgen -G "$tmp/*.tar.gz" >/dev/null || { echo "no release bundle found for $VERSION in $SLUG" >&2; exit 1; }
-(cd "$tmp" && sha256sum --check --quiet ./*.sha256)
+bundle=$(compgen -G "$tmp/central-*.tar.gz" | head -n1 || true)
+[ -n "$bundle" ] || bundle=$(compgen -G "$tmp/coding-skills-*.tar.gz" | head -n1 || true)
+[ -n "$bundle" ] || { echo "no release bundle found for $VERSION in $SLUG" >&2; exit 1; }
+(cd "$tmp" && sha256sum --check --quiet "$(basename "$bundle").sha256")
 
 mkdir -p "$tmp/x"
-tar -xzf "$tmp"/*.tar.gz -C "$tmp/x"
+tar -xzf "$bundle" -C "$tmp/x"
 src="$tmp/x/skills"
 
 if [ "$#" -gt 0 ]; then
@@ -68,7 +70,7 @@ if [ -d "$tmp/x/central" ]; then
   for f in GNUmakefile makefile Makefile; do
     [ -f "$f" ] && { mk=$f; break; }
   done
-  if [ ! -f "$mk" ] || ! grep -qxF "$include_line" "$mk"; then
+  if [ ! -f "$mk" ] || ! grep -qxF -e "$include_line" "$mk"; then
     printf '\n%s\n' "$include_line" >> "$mk"
   fi
   echo "synced .central"
