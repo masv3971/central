@@ -1,6 +1,6 @@
 ---
 name: sunet-premerge
-description: Quick pre-merge check of a PR into main via the gh CLI: short summary, merge readiness (CI, reviews, conflicts, stack) and any remarks. Use when the user types /sunet-premerge or is about to merge a PR.
+description: 'Quick pre-merge check of a PR into main via the gh CLI: short summary, merge readiness (CI, reviews, conflicts, stack) and any remarks. Use when the user types /sunet-premerge or is about to merge a PR.'
 ---
 
 ## Style
@@ -17,7 +17,25 @@ Use `gh` (if missing or unauthenticated, tell me to run `gh auth login` and stop
 - `gh pr view PR --json title,body,author,baseRefName,headRefName,isDraft,state,mergeable,mergeStateStatus,reviewDecision,files,commits,additions,deletions,latestReviews`
 - `gh pr diff PR`
 - `gh pr checks PR`
-- `gh api repos/OWNER/REPO/pulls/N/comments --paginate` and `gh pr view PR --comments` (open threads)
+- `gh pr view PR --comments` (conversation and review summaries)
+- Unresolved inline threads. REST does not expose resolved state, so use GraphQL and keep threads where `isResolved` is false:
+
+```
+gh api graphql --paginate -F owner=OWNER -F repo=REPO -F number=N -f query='
+query($owner:String!, $repo:String!, $number:Int!, $endCursor:String) {
+  repository(owner:$owner, name:$repo) {
+    pullRequest(number:$number) {
+      reviewThreads(first:100, after:$endCursor) {
+        pageInfo { hasNextPage endCursor }
+        nodes {
+          isResolved isOutdated path line
+          comments(first:100) { totalCount nodes { author { login } body url } }
+        }
+      }
+    }
+  }
+}'
+```
 
 ## 2. Check merge readiness
 - Base branch is `main` (or the default branch). If not, say so: this may be a stacked PR.
@@ -25,7 +43,7 @@ Use `gh` (if missing or unauthenticated, tell me to run `gh auth login` and stop
 - No merge conflicts (`mergeable`, `mergeStateStatus`).
 - CI and quality gates (SonarCloud etc.) pass. Name each failing or pending check.
 - Review decision is approved. Note requested changes and missing required reviews.
-- Review threads: list unresolved or unanswered findings from people, Copilot, code scanning.
+- Review threads: list unresolved threads (`isResolved` false) and unanswered findings from people, Copilot, code scanning.
 - Stack: if the description or base branch shows dependencies on other PRs, say which must merge first.
 - Description claims vs diff: leftover TODOs, debug output, unrelated files, secrets, missing tests or docs for changed behaviour, breaking changes to API, config or stored data.
 
