@@ -2,7 +2,7 @@ BUMP         ?= patch
 FORCE        ?=
 SKILLS_REPO  ?= masv3971/central
 
-.PHONY: release gh-install gh-auth central-sync-install
+.PHONY: release get_release-tag gh-install gh-auth central-sync-install
 
 # Downloads the latest central-sync.sh release asset to .central/central-sync.sh.
 central-sync-install:
@@ -36,8 +36,11 @@ gh-auth: gh-install
 		gh auth login; \
 	fi
 
+get_release-tag: ## Show the latest vX.Y.Z tag
+	@git tag -l "v*" --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$$' | head -n1 || echo "v0.0.0"
+
 # Tags the next vX.Y.Z and pushes it.
-release:
+release: ## Tag and push the next release (BUMP=major|minor|patch)
 	@set -e; \
 	echo "$(BUMP)" | grep -qE '^(major|minor|patch)$$' || \
 		{ echo "Error: BUMP must be major, minor, or patch (got: $(BUMP))"; exit 1; }; \
@@ -59,7 +62,17 @@ release:
 		patch) PATCH=$$((PATCH + 1)) ;; \
 	esac; \
 	NEW_TAG="v$$MAJOR.$$MINOR.$$PATCH"; \
+	echo ""; \
 	echo "$$LATEST -> $$NEW_TAG"; \
+	echo ""; \
+	if git rev-parse "$$NEW_TAG" >/dev/null 2>&1; then \
+		echo "Error: tag $$NEW_TAG already exists"; exit 1; \
+	fi; \
+	bash .central/release-changelog.sh "$$NEW_TAG" "$$LATEST"; \
+	git add CHANGELOG.md; \
+	git diff --cached --quiet -- CHANGELOG.md || git commit -m "chore: changelog for $$NEW_TAG" -- CHANGELOG.md; \
 	git tag -a "$$NEW_TAG" -m "Release $$NEW_TAG"; \
-	git push origin "$$NEW_TAG"; \
-	echo "==> $$NEW_TAG pushed"
+	git push --atomic origin HEAD "$$NEW_TAG"; \
+	echo ""; \
+	echo "==> $$NEW_TAG pushed"; \
+	echo ""
