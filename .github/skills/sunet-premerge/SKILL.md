@@ -14,7 +14,7 @@ The PR is given after the command: a URL (`https://github.com/OWNER/REPO/pull/N`
 ## 1. Gather context
 Use `gh` (if missing or unauthenticated, tell me to run `gh auth login` and stop). Replace PR with the URL or number:
 
-- `gh pr view PR --json title,body,author,baseRefName,headRefName,isDraft,state,mergeable,mergeStateStatus,reviewDecision,files,commits,additions,deletions,latestReviews`
+- `gh pr view PR --json title,body,author,baseRefName,headRefName,isDraft,state,mergeable,mergeStateStatus,reviewDecision,headRefOid,files,commits,additions,deletions,latestReviews`
 - `gh pr diff PR`
 - `gh pr checks PR`
 - `gh pr view PR --comments` (conversation and review summaries)
@@ -85,4 +85,4 @@ One line: **Ready to merge**, **Merge with remarks**, or **Do not merge yet**, p
 Write "None" where there is nothing. Do not invent problems.
 
 ### Merge command
-Only when the verdict is not "Do not merge yet". Suggest the matching command (e.g. `gh pr merge PR --squash --delete-branch`) and ask which merge method I want. Run it only if I say yes.
+Only when the verdict is not "Do not merge yet". Suggest the matching command (e.g. `gh pr merge PR --squash --delete-branch --match-head-commit HEADREFOID`) and ask which merge method I want. Use the `headRefOid` captured in step 1, so a push made after the check is not merged unchecked. If the merge is refused because the head changed, rerun this check. Run the command only if I say yes.
